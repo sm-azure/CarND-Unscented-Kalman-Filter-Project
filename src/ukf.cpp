@@ -23,6 +23,7 @@ UKF::UKF() {
 
   // initial covariance matrix
   P_ = MatrixXd(5, 5);
+  P_.setZero();
 
   // Process noise standard deviation longitudinal acceleration in m/s^2
   std_a_ = 30;
@@ -54,6 +55,26 @@ UKF::UKF() {
 
   Hint: one or more values initialized above might be wildly off...
   */
+
+  ///* initially set to false, set to true in first call of ProcessMeasurement
+  bool is_initialized_ = false;
+
+  ///* predicted sigma points matrix
+  //MatrixXd Xsig_pred_;
+
+  ///* time when the state is true, in us
+  //long long time_us_;
+
+  
+ ///* State dimension
+  int n_x_ = 5;
+
+  ///* Augmented state dimension
+  int n_aug_ = 7;
+
+  ///* Sigma point spreading parameter
+  double lambda_ = 3 - n_aug_;
+
 }
 
 UKF::~UKF() {}
@@ -63,12 +84,20 @@ UKF::~UKF() {}
  * either radar or laser.
  */
 void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
-  /**
-  TODO:
+  if(!is_initialized_){
 
-  Complete this function! Make sure you switch between lidar and radar
-  measurements.
-  */
+    //Set weights vector
+    VectorXd weights = VectorXd(2*n_aug_+1);
+    double weight_0 = lambda_/(lambda_+n_aug_);
+    weights(0) = weight_0;
+    for (int i=1; i<2*n_aug_+1; i++) {  
+      double weight = 0.5/(n_aug_+lambda_);
+      weights(i) = weight;
+    }
+
+
+    is_initialized_ = true;
+  }
 }
 
 /**
@@ -83,6 +112,36 @@ void UKF::Prediction(double delta_t) {
   Complete this function! Estimate the object's location. Modify the state
   vector, x_. Predict sigma points, the state, and the state covariance matrix.
   */
+ //create augmented mean vector
+  VectorXd x_aug = VectorXd(7);
+
+  //create augmented state covariance
+  MatrixXd P_aug = MatrixXd(7, 7);
+
+  //create sigma point matrix
+  MatrixXd Xsig_aug = MatrixXd(n_aug_, 2 * n_aug_ + 1);
+
+  //create augmented mean state
+  x_aug.setZero();
+  x_aug.head(x_.rows()) = x_;
+//create augmented covariance matrix
+  P_aug.setZero();
+  P_aug.topLeftCorner(P_.rows(), P_.cols()) = P_;
+  P_aug(5,5) = std_a_ * std_a_;
+  P_aug(6,6) = std_yawdd_ * std_yawdd_;
+  //create square root matrix
+  MatrixXd A = P_aug.llt().matrixL();
+  //create augmented sigma points
+  
+  double scaling_factor = 3;
+  MatrixXd A_Scaled = sqrt(scaling_factor) * A;
+  MatrixXd A_Scaled_Add = A_Scaled.colwise() + x_aug;
+  MatrixXd A_Scaled_Subtract = (-A_Scaled).colwise() + x_aug;
+  Xsig_aug.col(0) = x_aug;
+  Xsig_aug.block(0,1,A.rows(),A.cols()) = A_Scaled_Add;
+  Xsig_aug.block(0,8,A.rows(),A.cols()) = A_Scaled_Subtract;
+
+  cout << Xsig_aug << endl;
 }
 
 /**
