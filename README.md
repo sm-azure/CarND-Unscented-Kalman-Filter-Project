@@ -9,7 +9,8 @@ This project involves the Term 2 Simulator which can be downloaded [here](https:
 No changes have been made to the CMakeLists.txt. Simple `cmake` and `make` should be enough to compile
 
 ## Accuracy 
-* For dataset 1, the RMSE (X,Y, VX,VY) are 0.0719, 0.0845, 0.3566, 0.2608 which is under the expected .09, .10, 0.40, 0.30 values.
+* For dataset 1, the RMSE (X,Y, VX,VY) are 0.0719, 0.0845, 0.3566, 0.2608 which is under the expected .09, .10, 0.40, 0.30 values
+* NIS values were calculated and there are not too many values above 7.8 for the radar or lidar values.
 
 ## Algorithmic correctness and efficiency
 Code has been checked for algorithmic correctness. There does not seem to be any un-necessary code either. 
