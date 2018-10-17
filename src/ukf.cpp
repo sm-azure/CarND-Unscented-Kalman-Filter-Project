@@ -14,7 +14,7 @@ using std::vector;
  */
 UKF::UKF() {
   // if this is false, laser measurements will be ignored (except during init)
-  use_laser_ = false;
+  use_laser_ = true;
 
   // if this is false, radar measurements will be ignored (except during init)
   use_radar_ = true;
@@ -153,7 +153,7 @@ void UKF::ProcessMeasurement(MeasurementPackage measurement_pack) {
   }
   else if (measurement_pack.sensor_type_ == MeasurementPackage::LASER) {
     cout << "Lidar -" <<endl;
-    //UpdateLidar(measurement_pack);      
+    UpdateLidar(measurement_pack);      
   }
 }
 
@@ -374,7 +374,7 @@ void UKF::UpdateRadar(MeasurementPackage measurement_pack) {
  * Updates the state and the state covariance matrix using a radar measurement.
  * @param {MeasurementPackage} meas_package
  */
-void UKF::UpdateLidar(MeasurementPackage meas_package) {
+void UKF::UpdateLidar(MeasurementPackage measurement_pack) {
   /**
   TODO:
 
@@ -383,4 +383,71 @@ void UKF::UpdateLidar(MeasurementPackage meas_package) {
 
   You'll also need to calculate the radar NIS.
   */
+ cout << "In Update Lidar" <<endl;
+  float x = measurement_pack.raw_measurements_[0];
+  float y = measurement_pack.raw_measurements_[1];
+      
+  cout << "Raw measurements: " << x << "," << y << endl;
+  int n_z = 2;
+
+  //create matrix for sigma points in measurement space
+  MatrixXd Zsig = MatrixXd(n_z, 2 * n_aug_ + 1);
+
+  //mean predicted measurement
+  VectorXd z_pred = VectorXd(n_z);
+  
+  //measurement covariance matrix S
+  MatrixXd S = MatrixXd(n_z,n_z);
+
+  Zsig.fill(0.0);
+  z_pred.fill(0.0);
+  S.fill(0.0);
+  
+  for (int i=0; i<2 * n_aug_ + 1 ;i++ ){
+    double x =  Xsig_pred_(0,i);
+    double y = Xsig_pred_(1,i);
+      
+    //cout << rho << "," << phi << "," << rho_dot << endl;
+    z_pred[0] += weights_[i] * x;
+    z_pred[1] += weights_[i] * y;
+    
+    Zsig(0,i) = x;
+    Zsig(1,i) = y;
+  }
+  cout << "Predicted measurements: " << z_pred[0] << "," << z_pred[1] << endl;
+  //calculate mean predicted measurement
+  //calculate innovation covariance matrix S
+  for(int i=0;i < 2* n_aug_+1 ;i++){
+      VectorXd z_diff = Zsig.col(i)- z_pred;
+      S += weights_[i] * (z_diff * (z_diff).transpose());
+  }
+  //cout << "After z_diff 1" <<endl;
+  MatrixXd R = MatrixXd(n_z,n_z);
+  R.fill(0.0);
+  R(0,0) = std_laspx_ * std_laspx_;
+  R(1,1) = std_laspy_ * std_laspy_;  
+  S += R;
+
+  MatrixXd Tc = MatrixXd(n_x_, n_z);
+  Tc.fill(0.0);
+  x = measurement_pack.raw_measurements_[0];
+  y = measurement_pack.raw_measurements_[1];
+  VectorXd z = VectorXd(n_z);
+  z << x,y;
+
+  
+  for (int i=0;i< 2 * n_aug_ + 1; i ++ ){
+      VectorXd z_diff = Zsig.col(i)- z_pred;
+      VectorXd x_diff = Xsig_pred_.col(i) - x_;
+      Tc += weights_[i] * (x_diff) * (z_diff).transpose();
+  }
+  //cout << "Tc" << endl;
+  //calculate Kalman gain K;
+  MatrixXd K = Tc * S.inverse();
+  
+  //update state mean and covariance matrix
+  VectorXd z_diff = z - z_pred;
+  x_ = x_ + K * (z_diff);
+
+  P_ = P_ - K*S*K.transpose();
 }
