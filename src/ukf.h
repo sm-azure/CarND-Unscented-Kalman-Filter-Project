@@ -67,7 +67,12 @@ public:
   ///* Sigma point spreading parameter
   double lambda_;
 
-  int count;
+  int lidar_count;
+  int radar_count;
+
+  VectorXd NIS_Lidar_;
+
+  VectorXd NIS_Radar_;
   /**
    * Constructor
    */

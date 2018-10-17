@@ -70,8 +70,12 @@ UKF::UKF() {
   Xsig_pred_ = MatrixXd(n_x_, 2 * n_aug_ + 1);
   Xsig_pred_.setZero();;
 
-  count = 0;
+  NIS_Lidar_ = VectorXd(250);
 
+  NIS_Radar_ = VectorXd(250);
+
+  radar_count = 0;
+  lidar_count = 0;
 }
 
 UKF::~UKF() {}
@@ -81,7 +85,7 @@ UKF::~UKF() {}
  * either radar or laser.
  */
 void UKF::ProcessMeasurement(MeasurementPackage measurement_pack) {
-  cout << "------------------------------------------------>" << count++ << endl;
+  cout << "------------------------------------------------>" << endl;
   if(!is_initialized_){
 
     //Set weights vector
@@ -148,11 +152,11 @@ void UKF::ProcessMeasurement(MeasurementPackage measurement_pack) {
 
   //Update based on sensor type
   if (measurement_pack.sensor_type_ == MeasurementPackage::RADAR) {
-    cout << "Radar" <<endl;
+    cout << "Radar --" << radar_count << endl;
     UpdateRadar(measurement_pack);
   }
   else if (measurement_pack.sensor_type_ == MeasurementPackage::LASER) {
-    cout << "Lidar -" <<endl;
+    cout << "Lidar --" << lidar_count <<endl;
     UpdateLidar(measurement_pack);      
   }
 }
@@ -368,6 +372,12 @@ void UKF::UpdateRadar(MeasurementPackage measurement_pack) {
   x_ = x_ + K * (z_diff);
 
   P_ = P_ - K*S*K.transpose();
+
+  //Measure NIS
+  double NIS = z_diff.transpose() * S.inverse() * z_diff;
+  NIS_Radar_(radar_count++) = NIS;
+  cout<< "NIS Radar" <<endl;
+  cout << NIS_Radar_;
 }
 
 /**
@@ -450,4 +460,11 @@ void UKF::UpdateLidar(MeasurementPackage measurement_pack) {
   x_ = x_ + K * (z_diff);
 
   P_ = P_ - K*S*K.transpose();
+
+  //Measure NIS
+  double NIS = z_diff.transpose() * S.inverse() * z_diff;
+  NIS_Lidar_(lidar_count++) = NIS;
+
+  cout<< "NIS_Lidar" <<endl;
+  cout << NIS_Lidar_;
 }
